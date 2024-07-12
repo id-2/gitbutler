@@ -1,21 +1,24 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+    unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
       };
     };
   };
-  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
+  outputs = { self, nixpkgs, unstable, flake-utils, rust-overlay }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
           overlays = [ (import rust-overlay) ];
           pkgs = import nixpkgs {
+            inherit system overlays;
+          };
+          unstablePkgs = import unstable {
             inherit system overlays;
           };
 
@@ -31,8 +34,10 @@
             gettext
             libiconv
             libsoup_3
-            webkitgtk
-            webkitgtk_4_1
+            # webkitgtk
+            (webkitgtk.overrideAttrs (old: {
+              buildInputs = [ unstablePkgs.mesa ] ++ old.buildInputs;
+            }))
             nodejs_20
             corepack_20
           ];
